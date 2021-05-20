@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import os
 import torch
 import utils
 
@@ -6,6 +10,9 @@ from scipy.stats import linregress
 
 optimizers = ['SGD', 'RMSprop', 'Adam', 'AdamW']
 eb_criteria = ['gradients', 'hessian']
+
+def mse(y:torch.Tensor, y_hat:torch.Tensor) -> torch.Tensor:
+    return (y - y_hat).mul(0.5).pow(2).mean()
 
 class Trainer(object):
 
@@ -43,8 +50,7 @@ class Trainer(object):
             optim = AdamW(model.parameters(), lr=self.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01))
         return optim
 
-    def mse(self, y:torch.Tensor, y_hat:torch.Tensor) -> torch.Tensor:
-        return (y - y_hat).mul(0.5).pow(2).mean()
+
 
     def validation(self, model, val_batches:Iterator[Tuple[torch.Tensor, torch.Tensor]]):
         model.eval()
@@ -102,7 +108,13 @@ class Trainer(object):
             return stop_trainig
 
 
-    def fit(self, model, train_batches:Iterator[Tuple[torch.Tensor, torch.Tensor]], val_batches=None):
+    def fit(
+            self,
+            model,
+            train_batches:Iterator[Tuple[torch.Tensor, torch.Tensor]],
+            val_batches=None,
+            verbose:bool=True,
+            ):
         model.to(self.device)
         optim = self.get_optim(model)
         #register forward and backward hooks, if stopping criterion is evidence-based
@@ -137,9 +149,9 @@ class Trainer(object):
 
             if stop_trainig:
                 torch.save({
-                        'model_state_dict': model.state_dict(),
-                        'optim_state_dict': optim.state_dict(),
-                        }, os.path.join(model_dir, f'model_epoch{epoch+1:04d}.tar'))
+                            'model_state_dict': model.state_dict(),
+                            'optim_state_dict': optim.state_dict(),
+                            }, os.path.join(PATH, f'model_epoch{epoch+1:04d}.tar'))
                 break
 
         return train_losses

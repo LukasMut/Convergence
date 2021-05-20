@@ -10,6 +10,20 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+def gen_dataset(x:torch.Tensor, y:torch.Tensor):
+    return torch.utils.data.TensorDataset(x, y)
+
+def gen_batches(ds, batch_size:int, shuffle:bool):
+    return torch.utils.data.DataLoader(dataset=ds, batch_size=batch_size, shuffle=shuffle)
+
+def train_val_split(X:torch.Tensor, y:torch.Tensor, fraction:float):
+    X_train = X[:int(len(X)*fraction)]
+    y_train = y[:int(len(y)*fraction)]
+    X_val = X[int(len(X)*fraction):]
+    y_val = y[int(len(y)*fraction):]
+    return X_train, X_val, y_train, y_val
+
 def register_hooks(model):
     """register a backward hook to store per-sample gradients"""
     for m in model.modules():
