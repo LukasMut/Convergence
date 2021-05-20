@@ -19,6 +19,15 @@ class LogReg(nn.Module):
         y = self.sigmoid(self.fc(x))
         return y
 
+class LinReg(nn.Module):
+
+    def __init__(self, in_size:int):
+        super(LinReg, self).__init__()
+        self.fc = nn.Linear(in_features=in_size, out_features=out_size, bias=True)
+
+    def forward(self, x:torch.Tensor):
+        return self.fc(x)
+
 class MLP(nn.Module):
 
     def __init__(self, in_size:int, hidden_size:int, out_size:int):
