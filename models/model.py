@@ -35,8 +35,8 @@ class VReg(nn.Module):
 
     def __init__(self, in_size:int, out_size:int):
         super(VReg, self).__init__()
-        self.encoder_mu = nn.Linear(in_features=in_size, out_features=out_size)
-        self.encoder_logvar = nn.Linear(in_features=in_size, out_features=out_size)
+        self.encoder_mu = nn.Linear(in_features=in_size, out_features=out_size, bias=False)
+        self.encoder_logvar = nn.Linear(in_features=in_size, out_features=out_size, bias=False)
 
     def reparameterize(self, mu:torch.Tensor, logvar:torch.Tensor) -> torch.Tensor:
         sigma = logvar.mul(0.5).exp()
