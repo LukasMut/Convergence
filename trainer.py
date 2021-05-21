@@ -80,9 +80,10 @@ class Trainer(object):
     def early_stopping(
                        self,
                        model,
+                       train_batches:Iterator[Tuple[torch.Tensor, torch.Tensor]],
                        val_batches:Iterator[Tuple[torch.Tensor, torch.Tensor]],
                        val_losses:List[float],
-                       train_losses:List[float]=None,
+                       train_losses:List[float],
                        steps:int=None,
                        ) -> Tuple[bool, float]:
         stop_trainig = False
@@ -107,6 +108,8 @@ class Trainer(object):
                     stop_trainig = True
 
         elif self.criterion == 'training':
+            current_train_loss = self.validation(model, train_batches)
+            train_losses.append(current_train_loss)
             assert self.window_size, '\nWhen evaluating the mse on the train set, window size parameter is required\n'
             if (steps + 1) > self.window_size:
                 lmres = linregress(range(self.window_size), train_losses[(steps + 1 - self.window_size):(steps + 2)])
@@ -116,7 +119,12 @@ class Trainer(object):
         if self.criterion != 'validation':
             current_val_loss = self.validation(model, val_batches)
             val_losses.append(current_val_loss)
-        return stop_trainig, val_losses
+
+        if self.criterion != 'training':
+            current_train_loss = self.validation(model, train_batches)
+            train_losses.append(current_train_loss)
+
+        return stop_trainig, train_losses, val_losses
 
     def _save_params(self, model, optim, steps:int) -> None:
         torch.save({
@@ -146,40 +154,34 @@ class Trainer(object):
                 y_hat = model(X)
                 loss = mse(y, y_hat)
                 loss.backward()
-                train_losses.append(loss.item())
                 optim.step()
-
                 if stopping:
                     current_val_loss = self.validation(model, val_batches)
+                    current_train_loss = self.validation(model, train_batches)
                     val_losses.append(current_val_loss)
+                    train_losses.append(current_train_loss)
                 else:
                     if self.criterion in eb_criteria:
-                        stop_trainig, val_losses = self.early_stopping(
-                                                                        model=model,
-                                                                        val_batches=val_batches,
-                                                                        val_losses=val_losses,
-                                                                        )
+                        stop_trainig, train_losses, val_losses = self.early_stopping(
+                                                                                    model=model,
+                                                                                    train_batches=train_batches,
+                                                                                    val_batches=val_batches,
+                                                                                    val_losses=val_losses,
+                                                                                    train_losses=train_losses
+                                                                                    )
                         utils.clear_backprops(model)
-                    elif self.criterion == 'training':
-                        stop_trainig, val_losses = self.early_stopping(
-                                                                        model=model,
-                                                                        val_batches=val_batches,
-                                                                        val_losses=val_losses,
-                                                                        train_losses=train_losses,
-                                                                        steps=steps,
-                                                                        )
-                    elif self.criterion == 'validation':
-                        stop_trainig, val_losses = self.early_stopping(
-                                                                        model=model,
-                                                                        val_batches=val_batches,
-                                                                        val_losses=val_losses,
-                                                                        steps=steps,
-                                                                        )
+                    else:
+                        stop_trainig, train_losses, val_losses = self.early_stopping(
+                                                                                    model=model,
+                                                                                    train_batches=train_batches,
+                                                                                    val_batches=val_batches,
+                                                                                    val_losses=val_losses,
+                                                                                    train_losses=train_losses,
+                                                                                    steps=steps,
+                                                                                    )
                     if stop_trainig:
                         stopping = steps
                 steps += 1
-                # self._save_params(model, optim, steps)
-                #break
             if verbose:
                 avg_train_loss = np.mean(train_losses)
                 avg_val_loss = np.mean(val_losses)
