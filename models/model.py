@@ -21,7 +21,7 @@ class LogReg(nn.Module):
 
 class LinReg(nn.Module):
 
-    def __init__(self, in_size:int):
+    def __init__(self, in_size:int, out_size:int):
         super(LinReg, self).__init__()
         self.fc = nn.Linear(in_features=in_size, out_features=out_size, bias=True)
 

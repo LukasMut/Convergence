@@ -10,9 +10,11 @@ import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 
+from typing import Iterator, List, Tuple
 
-def gen_dataset(x:torch.Tensor, y:torch.Tensor):
-    return torch.utils.data.TensorDataset(x, y)
+
+def gen_dataset(X:torch.Tensor, y:torch.Tensor):
+    return tuple((x_i, y_i) for x_i, y_i in zip(X, y))
 
 def gen_batches(ds, batch_size:int, shuffle:bool):
     return torch.utils.data.DataLoader(dataset=ds, batch_size=batch_size, shuffle=shuffle)
@@ -48,13 +50,14 @@ def clear_backprops(model: nn.Module) -> None:
             del m.gradients
 
 def compute_sample_grads(model) -> None:
-    for m in model.modules():
-        A = m.inputs
-        M = A.shape[0]
-        B = m.gradients[0] * M
-        setattr(m.weight, 'sample_gradients', torch.einsum('ni,nj->nij', B, A))
-        if m.bias is not None:
-            setattr(m.bias, 'sample_gradients', B)
+    for n, m in model.named_modules():
+        if n.startswith('fc'):
+            A = m.inputs
+            M = A.shape[0]
+            B = m.gradients[0] * M
+            setattr(m.weight, 'sample_gradients', torch.einsum('ni,nj->nij', B, A))
+            if m.bias is not None:
+                setattr(m.bias, 'sample_gradients', B)
 
 def estimate_grad_var(sample_gradients, average_gradients):
     return (sample_gradients - average_gradients[None, ...]).pow(2).sum(dim=0)/(sample_gradients.shape[0]-1)
