@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__all__ = ['LogReg', 'MLP', 'VReg']
+__all__ = ['LogReg', 'LinReg', 'MLP', 'VReg']
 
 import torch
 import torch.nn as nn
